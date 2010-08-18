@@ -4,6 +4,7 @@
 package com.google.javaguipst;
 
 import com.pff.PSTActivity;
+import com.pff.PSTAttachment;
 import com.pff.PSTContact;
 import com.pff.PSTException;
 import com.pff.PSTFile;
@@ -21,15 +22,20 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Hashtable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.Timer;
 import javax.swing.Icon;
+import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.JTextPane;
 import javax.swing.ListSelectionModel;
@@ -63,7 +69,7 @@ public class DesktopApplication1View extends FrameView {
     emailTable.setModel(new DefaultTableModel());
 
     ListSelectionModel selectionModel = emailTable.getSelectionModel();
-    selectionModel.addListSelectionListener(new ListSelectionListenerImpl(emailTable));
+    selectionModel.addListSelectionListener(new ListSelectionListenerImpl(emailTable, attachmentsPane));
 
     emailContentPane.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
 
@@ -212,7 +218,7 @@ public class DesktopApplication1View extends FrameView {
             TreeSelectionListener listener = listeners[i];
             folderTree.removeTreeSelectionListener(listener);
           }
-          folderTree.addTreeSelectionListener(new TreeSelectionListenerImpl(emailContentPane, emailTableModel));
+          folderTree.addTreeSelectionListener(new TreeSelectionListenerImpl(emailContentPane, emailTableModel, attachmentsPane));
         } catch (PSTException ex) {
           Logger.getLogger(DesktopApplication1View.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
@@ -241,6 +247,7 @@ public class DesktopApplication1View extends FrameView {
     viewTabbedPane = new javax.swing.JTabbedPane();
     jScrollPane3 = new javax.swing.JScrollPane();
     emailContentPane = new javax.swing.JTextPane();
+    attachmentsPane = new javax.swing.JPanel();
     menuBar = new javax.swing.JMenuBar();
     javax.swing.JMenu fileMenu = new javax.swing.JMenu();
     jMenuItemLoadPSTFile = new javax.swing.JMenuItem();
@@ -294,6 +301,10 @@ public class DesktopApplication1View extends FrameView {
 
     org.jdesktop.application.ResourceMap resourceMap = org.jdesktop.application.Application.getInstance(com.google.javaguipst.DesktopApplication1.class).getContext().getResourceMap(DesktopApplication1View.class);
     viewTabbedPane.addTab(resourceMap.getString("jScrollPane3.TabConstraints.tabTitle"), jScrollPane3); // NOI18N
+
+    attachmentsPane.setName("attachmentsPane"); // NOI18N
+    attachmentsPane.setLayout(new javax.swing.BoxLayout(attachmentsPane, javax.swing.BoxLayout.LINE_AXIS));
+    viewTabbedPane.addTab(resourceMap.getString("attachmentsPane.TabConstraints.tabTitle"), attachmentsPane); // NOI18N
 
     jSplitPane2.setRightComponent(viewTabbedPane);
 
@@ -378,6 +389,7 @@ public class DesktopApplication1View extends FrameView {
     setStatusBar(statusPanel);
   }// </editor-fold>//GEN-END:initComponents
   // Variables declaration - do not modify//GEN-BEGIN:variables
+  private javax.swing.JPanel attachmentsPane;
   private javax.swing.JTextPane emailContentPane;
   private javax.swing.JTable emailTable;
   private javax.swing.JTree folderTree;
@@ -406,10 +418,12 @@ public class DesktopApplication1View extends FrameView {
 
     private JTextPane emailContent;
     private EmailTableModel emailTableModel;
+    private JPanel attachmentsPanel;
 
-    public TreeSelectionListenerImpl(JTextPane emailContent, EmailTableModel emailTableModel) {
+    public TreeSelectionListenerImpl(JTextPane emailContent, EmailTableModel emailTableModel, JPanel attachmentsPanel) {
       this.emailContent = emailContent;
       this.emailTableModel = emailTableModel;
+      this.attachmentsPanel = attachmentsPanel;
     }
 
     public void valueChanged(TreeSelectionEvent e) {
@@ -421,6 +435,8 @@ public class DesktopApplication1View extends FrameView {
         PSTFolder folderValue = (PSTFolder) node.getUserObject();
         emailTableModel.setFolder(folderValue);
         emailContent.setText(null);
+        attachmentsPanel.removeAll();
+        attachmentsPanel.getParent().repaint();
       }
     }
   }
@@ -428,9 +444,11 @@ public class DesktopApplication1View extends FrameView {
   private class ListSelectionListenerImpl implements ListSelectionListener {
 
     private JTable emailTable;
+    private JPanel attachmentsPane;
 
-    public ListSelectionListenerImpl(JTable emailTable) {
+    public ListSelectionListenerImpl(JTable emailTable, JPanel attachmentsPane) {
       this.emailTable = emailTable;
+      this.attachmentsPane = attachmentsPane;
     }
 
     public void valueChanged(ListSelectionEvent e) {
@@ -453,15 +471,97 @@ public class DesktopApplication1View extends FrameView {
         PSTRss rss = (PSTRss) selectedMessage;
         emailContentPane.setText(rss.toString());
       } else if (selectedMessage != null) {
-        //						System.out.println(selectedMessage.getMessageClass());
-        //						emailContentPane.setText(selectedMessage.getBody());
         emailContentPane.setText(selectedMessage.getBodyHTML());
-        //emailContentPane.setText(selectedMessage.toString());
-        //						PSTTask task = selectedMessage.toTask();
-        //						emailContentPane.setText(task.toString());
+        if (selectedMessage.hasAttachments()) {
+          updateAttachmentsPanel(selectedMessage);
+        }
       }
       //					treePane.getViewport().setViewPosition(new Point(0,0));
       emailContentPane.setCaretPosition(0);
+    }
+
+    private void updateAttachmentsPanel(PSTMessage selectedMessage) {
+      attachmentsPane.removeAll();
+      for (int i = 0; i < selectedMessage.getNumberOfAttachments(); i++) {
+        try {
+          PSTAttachment attachment = selectedMessage.getAttachment(i);
+          System.out.println(attachment.getLongFilename());
+
+          JButton button = new JButton(attachment.getLongFilename());
+          button.addActionListener(new ActionListenerImpl(attachment));
+          attachmentsPane.add(button);
+
+        } catch (PSTException ex) {
+          Logger.getLogger(DesktopApplication1View.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+          Logger.getLogger(DesktopApplication1View.class.getName()).log(Level.SEVERE, null, ex);
+        }
+      }
+      //attachmentsPane.repaint();
+      attachmentsPane.getParent().repaint();
+
+    }
+
+    private class ActionListenerImpl implements ActionListener {
+
+      private PSTAttachment attachment;
+
+      public ActionListenerImpl(PSTAttachment attachment) {
+        this.attachment = attachment;
+      }
+
+      public void actionPerformed(ActionEvent e) {
+        final JFileChooserOverwrite chooser = new JFileChooserOverwrite();
+        File selectedFile = new File(attachment.getLongFilename());
+        chooser.setSelectedFile(selectedFile);
+        chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+        chooser.setAcceptAllFileFilterUsed(false);
+        // Show the dialog; wait until dialog is closed
+        int result = chooser.showSaveDialog(getComponent());
+
+        
+        boolean save = false;
+        // Determine which button was clicked to close the dialog
+        switch (result) {
+          case JFileChooser.APPROVE_OPTION:
+            // Approve (Open or Save) was clicked
+            selectedFile = chooser.getSelectedFile();
+            save = true;
+            break;
+          case JFileChooser.CANCEL_OPTION:
+            // Cancel or the close-dialog icon was clicked
+            break;
+          case JFileChooser.ERROR_OPTION:
+            // The selection process did not complete successfully
+            break;
+        }
+
+        if (save) {
+          InputStream in = null;
+          try {
+            in = attachment.getFileInputStream();
+            OutputStream out = new FileOutputStream(selectedFile);
+            // Transfer bytes from in to out
+            byte[] buf = new byte[1024];
+            int len;
+            while ((len = in.read(buf)) > 0) {
+              out.write(buf, 0, len);
+            }
+            in.close();
+            out.close();
+          } catch (IOException ex) {
+            Logger.getLogger(DesktopApplication1View.class.getName()).log(Level.SEVERE, null, ex);
+          } catch (PSTException ex) {
+            Logger.getLogger(DesktopApplication1View.class.getName()).log(Level.SEVERE, null, ex);
+          } finally {
+            try {
+              in.close();
+            } catch (IOException ex) {
+              Logger.getLogger(DesktopApplication1View.class.getName()).log(Level.SEVERE, null, ex);
+            }
+          }
+        }
+      }
     }
   }
 }
