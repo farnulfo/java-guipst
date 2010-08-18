@@ -73,6 +73,9 @@ public class DesktopApplication1View extends FrameView {
 
     emailContentPane.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
 
+    // Always select the message tab
+    viewTabbedPane.setSelectedIndex(0);
+
     // status bar initialization - message timeout, idle icon and busy animation, etc
     ResourceMap resourceMap = getResourceMap();
     int messageTimeout = resourceMap.getInteger("StatusBar.messageTimeout");
