@@ -163,7 +163,7 @@ public class DesktopApplication1View extends FrameView {
 
   private class LoadPSTFileTask extends org.jdesktop.application.Task<Object, Void> {
 
-    File file;
+    File file = null;
 
     LoadPSTFileTask(org.jdesktop.application.Application app) {
       // Runs on the EDT.  Copy GUI state that
@@ -179,6 +179,10 @@ public class DesktopApplication1View extends FrameView {
 
     @Override
     protected Object doInBackground() {
+      if (file == null) {
+        // No selected file
+        return null;
+      }
       Hashtable result = null;
       PSTFile pstFile = null;
       PSTFolderNode top = null;
@@ -186,7 +190,7 @@ public class DesktopApplication1View extends FrameView {
         // Your Task's code here.  This method runs
         // on a background thread, so don't reference
         // the Swing GUI from here.
-        pstFile = new PSTFile("/Users/franck/Outlook/Outlook.pst");
+        pstFile = new PSTFile(file.getCanonicalPath());
         top = new PSTFolderNode(pstFile.getMessageStore());
         DesktopApplication1.buildTree(top, pstFile.getRootFolder());
         result = new Hashtable();
