@@ -479,9 +479,7 @@ public class DesktopApplication1View extends FrameView {
         emailContentPane.setText(rss.toString());
       } else if (selectedMessage != null) {
         emailContentPane.setText(selectedMessage.getBodyHTML());
-        if (selectedMessage.hasAttachments()) {
-          updateAttachmentsPanel(selectedMessage);
-        }
+        updateAttachmentsPanel(selectedMessage);
       }
       //					treePane.getViewport().setViewPosition(new Point(0,0));
       emailContentPane.setCaretPosition(0);
@@ -492,8 +490,6 @@ public class DesktopApplication1View extends FrameView {
       for (int i = 0; i < selectedMessage.getNumberOfAttachments(); i++) {
         try {
           PSTAttachment attachment = selectedMessage.getAttachment(i);
-          System.out.println(attachment.getLongFilename());
-
           JButton button = new JButton(attachment.getLongFilename());
           button.addActionListener(new ActionListenerImpl(attachment));
           attachmentsPane.add(button);
@@ -526,7 +522,7 @@ public class DesktopApplication1View extends FrameView {
         // Show the dialog; wait until dialog is closed
         int result = chooser.showSaveDialog(getComponent());
 
-        
+
         boolean save = false;
         // Determine which button was clicked to close the dialog
         switch (result) {
