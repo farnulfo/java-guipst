@@ -478,7 +478,11 @@ public class DesktopApplication1View extends FrameView {
         PSTRss rss = (PSTRss) selectedMessage;
         emailContentPane.setText(rss.toString());
       } else if (selectedMessage != null) {
-        emailContentPane.setText(selectedMessage.getBodyHTML());
+        String text = selectedMessage.getBodyHTML();
+        if (text.equals("")) {
+          text = selectedMessage.getBody();
+        }
+        emailContentPane.setText(text);
         updateAttachmentsPanel(selectedMessage);
       }
       //					treePane.getViewport().setViewPosition(new Point(0,0));
