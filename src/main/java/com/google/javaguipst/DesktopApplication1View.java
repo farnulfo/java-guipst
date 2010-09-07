@@ -440,7 +440,13 @@ public class DesktopApplication1View extends FrameView {
       }
       if (node.getUserObject() instanceof PSTFolder) {
         PSTFolder folderValue = (PSTFolder) node.getUserObject();
-        emailTableModel.setFolder(folderValue);
+        try {
+          emailTableModel.setFolder(folderValue);
+        } catch (IOException ex) {
+          Logger.getLogger(DesktopApplication1View.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (PSTException ex) {
+          Logger.getLogger(DesktopApplication1View.class.getName()).log(Level.SEVERE, null, ex);
+        }
         emailContent.setText(null);
         attachmentsPanel.removeAll();
         attachmentsPanel.getParent().repaint();
